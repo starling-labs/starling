@@ -1,0 +1,75 @@
+{
+  "task": "Find all molecules mentioned in PubMed for which acute toxicity (LD50) values have been reported.",
+  "task_instantiation": "Extract acute toxicity LD50 results for substances mentioned in the passage.\n\nCreate ONE extraction record for each distinct LD50 measurement for a single substance (global_identifier) under a specific set of experimental conditions. Emit separate records when the same substance has multiple LD50s (e.g., different routes, species, sex, assay/method, formulation/grade, or different reported values).\n\nIn-scope evidence:\n- The passage must explicitly report an LD50/LD₅₀/median lethal dose value (including point estimates, ranges, or values with ±, and optionally confidence limits/CI) for an acute exposure.\n- Values may be in any dose unit (e.g., mg/kg, g/kg, µg/kg BW, mL/kg, mice/mg protein). Record the unit exactly as stated.\n- Values taken from tables/figures are in scope if the numeric LD50 is explicitly shown.\n\nOut of scope (do NOT create a record):\n- Mentions that LD50 values exist/are collected/reviewed without stating a numeric value.\n- LC50-only data (unless an LD50 value is also explicitly given).\n- Chronic toxicity, NOAEL/LOAEL, TD50, EC50/IC50, “toxic dose” or “lethal dose” values that are not explicitly labeled as LD50.\n- Comparative-only statements without a numeric LD50.\n- Numeric values that lack a dose unit or dose basis (skip rather than guessing units).\n\nField filling rules:\n- Put the reported LD50 string (including uncertainty/range) in `ld50_value` and the dose unit in `ld50_unit` when it can be cleanly separated; if the unit cannot be separated, keep it in `ld50_value` and set `ld50_unit` to null.\n- Normalize common route abbreviations into `exposure_route` (e.g., p.o./oral/gavage -> oral; i.p./ip -> intraperitoneal; i.v./iv -> intravenous). If route is not stated, use \"unspecified\".\n- Capture species in `species` as stated (e.g., \"Sprague-Dawley rat\", \"deer mice (Peromyscus maniculatus)\").\n- Capture sex in `sex` only when explicitly stated; otherwise \"unknown\".\n- Put assay procedure, estimation method, or secondary source/database citation in `assay_method_or_source` (e.g., iUDP, modified Karber, up-and-down procedure, Schmid procedure, ChemIDplus).\n- Put confidence limits/CI in `confidence_interval` (include level such as 95% if stated).\n- Put non-standard/qualifying context that materially limits generalization in `qualifying_conditions` (e.g., age group, strain, technical grade, formulation/neutralent constituent, protein basis, single-dose design); routine parameters already captured elsewhere should not go here.\n- Use `extra_details` for any remaining relevant information (e.g., toxicity category labels, sample IDs, notes like “taken from another group”).",
+  "schema_spec": [
+    {
+      "name": "ld50_value",
+      "description": "LD50 value exactly as reported (may include ±, range, scientific notation). Do not invent or convert units; keep the reported formatting.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "ld50_unit",
+      "description": "Dose unit for LD50 (e.g., mg/kg, g/kg, µg/kg BW, mL/kg, mice/mg protein). Null if not separable or not stated.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "exposure_route",
+      "description": "Route of administration/exposure for the LD50. Normalize common abbreviations (p.o.=oral; i.p.=intraperitoneal; i.v.=intravenous). Use \"unspecified\" if not stated.",
+      "value_type": "string",
+      "allowed_values": [
+        "oral",
+        "intraperitoneal",
+        "intravenous",
+        "subcutaneous",
+        "intramuscular",
+        "dermal",
+        "inhalation",
+        "other",
+        "unspecified"
+      ]
+    },
+    {
+      "name": "species",
+      "description": "Test organism/species (and strain if given) for which LD50 is reported (e.g., rat, mouse, Sprague-Dawley rat). Null if not stated.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "sex",
+      "description": "Sex of the test animals if stated.",
+      "value_type": "string",
+      "allowed_values": [
+        "male",
+        "female",
+        "mixed",
+        "unknown"
+      ]
+    },
+    {
+      "name": "assay_method_or_source",
+      "description": "Method/design used to estimate LD50 or the cited data source (e.g., up-and-down procedure, Karber method, ChemIDplus). Null if not stated.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "confidence_interval",
+      "description": "Reported confidence limits/CI for the LD50 (include level such as 95% if stated), as text.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "qualifying_conditions",
+      "description": "Non-standard conditions that qualify the LD50 claim (e.g., age group, specific strain, technical grade, formulation, single-dose design, protein-basis dosing). Null if none stated.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "extra_details",
+      "description": "Free-form string for additional details that do not fit other top-level fields.",
+      "value_type": "string",
+      "allowed_values": []
+    }
+  ]
+}

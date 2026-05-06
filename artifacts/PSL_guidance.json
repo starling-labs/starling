@@ -1,0 +1,72 @@
+{
+  "task": "Find all proteins mentioned in PubMed for which subcellular localization has been reported.",
+  "task_instantiation": "Extract all explicit claims in the paper text that report the subcellular localization of a protein (including viral proteins, toxins, and engineered protein variants/fusion proteins). Create one record per (protein × distinct experimental/contextual setting) where a distinct setting is defined by any change in model system (cell line/tissue/organism), protein form (endogenous vs recombinant/overexpressed/tagged/mutant/fusion), or condition/treatment/timepoint that changes localization (e.g., basal vs PMA stimulation, presence of EA2 mutants, temperature shift, internalization). If a single setting lists multiple localizations (e.g., \"Golgi and ER\"), put all locations in `localization_sites` as a semicolon-separated list rather than creating multiple records.\n\nIn-scope evidence: statements that the protein is/was localized to, found in/on, enriched in, targeted to, retained in, accumulated in, imported into/exported from, shuttles between, translocates to, or is secreted into a compartment. Include negative localization only when explicitly stated (e.g., \"not on plasma membrane\") and record it in `negative_localization_sites`.\n\nOut of scope: (1) subcellular localization of non-protein entities; (2) purely computational predictions or presence of a signal peptide/NLS/KDEL/KKXX motif *without* an explicit statement that the protein localizes to a compartment; (3) functional interactions or trafficking effects that do not actually state a location.\n\nDefault interpretation: treat unqualified statements as the authors’ reported/observed localization under standard experimental conditions for that model system. If the claim depends on an unusual manipulation or context (e.g., engineered NLS, motif mutation abolishing retention, forced targeting sequence, disease state, inhibitor/knockdown/KO, strong overexpression artifacts), capture that in `qualifying_conditions` and still record the stated location.\n\nFill fields using the wording in the passage; do not normalize locations to ontology terms beyond what is written. If the passage only implies localization indirectly, skip the record.",
+  "schema_spec": [
+    {
+      "name": "localization_sites",
+      "description": "Subcellular compartment(s) where the protein is stated to localize/accumulate/be retained/targeted/enriched; semicolon-separate multiple sites within the same context (e.g., \"Golgi apparatus; endoplasmic reticulum\").",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "negative_localization_sites",
+      "description": "Any compartment(s) the passage explicitly states the protein is NOT localized to (e.g., \"not on plasma membrane\"); semicolon-separate if multiple. Null if none stated.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "model_system",
+      "description": "Biological system in which localization was assessed (cell line/cell type/tissue/organism), as stated (e.g., \"HEK293T cells\", \"yeast\", \"rat B35 neuroblastoma cells\").",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "protein_form",
+      "description": "Form of the protein whose localization is being described (e.g., endogenous, recombinant, overexpressed, GFP-tagged, fusion protein, mutant/variant, truncated). Use passage wording; null if not specified.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "condition",
+      "description": "Experimental condition affecting localization (e.g., basal, PMA stimulation, presence of EA2 mutants, timepoint, temperature shift, after internalization). Null if not specified.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "localization_process",
+      "description": "Type of localization behavior if explicitly described.",
+      "value_type": "string",
+      "allowed_values": [
+        "steady_state_localization",
+        "translocation",
+        "shuttling",
+        "import",
+        "export",
+        "retention",
+        "secretion"
+      ]
+    },
+    {
+      "name": "evidence_basis",
+      "description": "Whether the localization claim is presented as directly shown in the study vs cited as prior work vs inferred from a targeting motif/anchor. Choose based on explicit cues (e.g., \"we show\"/methods → observed_in_study; \"has been reported\" → previously_reported; \"KKXX motif confers ER localization\" without direct assay but explicit localization claim → inferred_from_signal_or_motif).",
+      "value_type": "string",
+      "allowed_values": [
+        "observed_in_study",
+        "previously_reported",
+        "inferred_from_signal_or_motif"
+      ]
+    },
+    {
+      "name": "qualifying_conditions",
+      "description": "Non-standard or qualifying context needed to interpret/generalize the localization (e.g., engineered NLS, motif mutation/tag addition causing relocalization or secretion, knockdown/KO, inhibitor, disease model). Null if none.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "extra_details",
+      "description": "Free-form string for additional details that do not fit other top-level fields.",
+      "value_type": "string",
+      "allowed_values": []
+    }
+  ]
+}

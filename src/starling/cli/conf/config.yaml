@@ -1,0 +1,67 @@
+# Starling Hydra config template.
+#
+# This file is the default config Starling loads.
+#
+# Or edit this file and provide `task` here.
+
+mode: run              # "run" = agentic filter-design loop, "extract" = batch extract from existing spec
+run_name: ${coolname:} # Auto-generated 2-word slug for this run
+task: null             # Required for mode=run and fresh mode=extract; optional when extract.resume_dir is set
+spec_file: null        # Path to existing retrieval_spec.json (used for fresh mode=extract runs)
+
+# LLM models (provider:model_name format)
+models:
+  main: openai-responses:gpt-5.2              # Primary model for the filter-design agent loop
+  sub: openrouter:openai/gpt-oss-120b:exacto  # Shared default for validator/investigator/extractor
+  validator: ${models.sub}                    # Judges paper relevance during validation
+  investigator: ${models.sub}                 # Analyzes papers for filter refinement suggestions
+  extractor: ${models.sub}                    # Extracts structured records from paper text
+
+# Output file paths (relative to runs/${run_name}/)
+outputs:
+  output_root: runs
+  retrieval_spec: ${outputs.output_root}/${run_name}/retrieval_spec.json # Designed filter spec (entity groups, semantic query, etc.)
+  agent_run: ${outputs.output_root}/${run_name}/agent_run.json           # Full agent conversation log (pruned)
+  extraction: ${outputs.output_root}/${run_name}/extractions.jsonl       # Extraction results, written incrementally as JSONL
+
+# Batch extraction settings
+extract:
+  pmids_file: null             # Optional JSON file containing a PMID array; overrides retrieval from spec_file in mode=extract
+  resume_dir: null             # Existing extraction dir; reuses pmids_to_process.json + extraction_guidance.json and appends to extractions.jsonl
+  limit: 100000                # Max papers to retrieve for extraction
+  parallelism: 10              # Concurrent paper extractions
+  window_parallelism: 1024     # Concurrent extraction windows across all in-flight papers
+  window_paragraphs: 5         # Paragraphs per extraction window (processes the whole paper window-by-window)
+
+  schema_discovery_records: 30 # Target high-confidence records to collect for schema inference
+  schema_discovery_papers: 20  # Min unique papers that must contribute to schema discovery records
+  schema_validate: true        # Run held-out schema validation during schema derivation
+  schema_validation_papers: 40 # Held-out papers for schema validation (probed beyond discovery papers)
+  schema_max_fields: 9         # Max fields in induced schema (includes extra_details)
+
+  schema_deriver_model: openai-responses:gpt-5.2 # Use the honker
+
+# Filter-design agent tuning parameters
+tuning:
+  filter_scope: paragraph                   # Entity co-occurrence scope: "paragraph" or "paper"
+  target_precision: 0.8                     # Precision target before finalizing the filter
+  target_recall_gap: 0.15                   # Max acceptable fraction of missed relevant papers
+  target_extraction_rate: 0.5               # Min fraction of papers yielding extraction records
+  marginal_recall_gain_threshold: 0.05      # Stop adding filters when marginal recall gain drops below this
+  max_sub_filters: 8                        # Maximum sub-filters in multi-filter mode
+  marginal_gain_base_k: 4000                # Base-pool retrieval size for marginal gain estimation
+  marginal_gain_candidate_k: 4000           # Candidate retrieval size for marginal gain estimation
+  marginal_gain_validation_sample_size: 100 # Validation sample size for marginal gain estimation
+  max_examples_returned: 10                 # Max validated paper examples shown to the agent
+  max_snippet_entities: 25                  # Max entity names per paper snippet
+  extraction_sample_default_size: 100       # Default sample size for sample_extraction tool
+  extraction_sample_parallelism: 10         # Concurrency for sample_extraction
+  extraction_sample_tokens_per_paper: 6000  # Token budget for the sample_extraction paper window (single call per paper)
+  investigation_max_tokens: 6000            # Token budget for paper text shown to investigator
+  investigation_max_entities: 100           # Max entity names fetched per investigated paper
+  validation_snippet_tokens: 4096           # Token budget for paper snippets shown to validator
+
+# Hydra run directory — outputs and .hydra/ config dumps go here
+hydra:
+  run:
+    dir: runs/${run_name}

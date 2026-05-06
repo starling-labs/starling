@@ -1,0 +1,93 @@
+{
+  "task": "Find all reactions within pubmed.",
+  "task_instantiation": "For each experimentally distinct chemical reaction in the text, extract one record. Include successful reactions, failed reactions (yield 0 or 'no reaction'), and trace/low-yield outcomes.\n\nDO NOT extract records for:\n- Biological assays where the readout is activity, binding affinity, IC50, or cell viability \u2014 not a chemical product\n- Text that ONLY contains product characterization (NMR, MS, mp, elemental analysis) without describing how the product was made. If a paragraph only says \"compound X was obtained as a white solid (72% yield), mp 168-170\u00b0C, \u00b9H NMR...\" but does not say what it was made FROM or HOW, do NOT extract it.\n- Vague pathway descriptions or metabolic transformations described without specific experimental conditions\n- Physical processes: crystallization, dissolution, extraction, chromatographic separation\n- Text that only discusses or cites reactions from other papers without providing its own experimental detail\n\nDO extract:\n- Synthetic reactions with defined reactants, products, and conditions\n- Enzymatic/biocatalytic reactions with specific substrates and products\n- Derivatization reactions (silylation, acetylation) even if done for analytical purposes\n- Failed reactions or decomposition outcomes (use outcome_status appropriately)\n\nDO NOT extract from review/discussion sections that describe reactions performed by other groups. Only extract if THIS paper performed the reaction.\n\nQUALITY RULES for high-quality extractions:\n- Use the most specific product name available. If the text says 'compound 10 (3,4,5-trimethoxyaniline)', use '3,4,5-trimethoxyaniline' as the product name, not 'compound 10'.\n- Never collapse multiple reactions into one record. If the text says 'compounds 11 and 12 were reduced', create two separate extraction records.\n- Do NOT re-state conditions from a different paragraph. If this step says 'prepared similarly', only include the conditions explicitly stated here.\n- If both a compound number AND a chemical name are given, ALWAYS use the chemical name.\n\nCOMPLETENESS \u2014 before extracting a record, verify you can fill at least:\n- product (required \u2014 always fill this)\n- reactants (strongly preferred \u2014 if the text says what the product was made from, include it; if the text only gives the product name and yield with no procedure, set needs_more_context=true)\n- At least ONE condition (temperature, solvent, catalyst, reagent, or reaction_time)\nIf the text only gives a product name and yield with no procedure or conditions, this is likely a characterization entry \u2014 do NOT extract it.\n\nCompound naming \u2014 write each compound name exactly as given in the paper. If an IUPAC systematic name is given, prefer it over common names or aliases. If only a label is used (e.g., '3a', 'compound 12'), include the qualifier ('compound 3a'). In the extracted fields, write compound names only \u2014 do not attempt to generate SMILES strings.\n\nglobal_identifier \u2014 Copy the global_identifier ONLY from an SM annotation whose surface forms include your exact product name. If no SM annotation matches the product you extracted, set global_identifier to null. A wrong global_identifier is worse than null \u2014 do NOT guess from nearby or loosely related annotations.\n\nReactants: list ALL substrates whose atoms are incorporated into the product, comma-separated.\nReagents: all other reaction participants not in reactants/catalyst/solvent \u2014 bases (K2CO3, Et3N, NaH), stoichiometric reagents (NaBH4, mCPBA, DIBAL-H), ligands (XPhos, BINAP), additives (TBAI, molecular sieves). Comma-separated.\nCatalyst: transition-metal catalysts (Pd(PPh3)4, Pd/C, CuI), Lewis acids (TiCl4, BF3\u00b7Et2O, AlCl3), Br\u00f8nsted acid catalysts (PPTS, p-TsOH), phase-transfer catalysts, organocatalysts. Include metal + ligand as one entry if reported together.\nSolvent: reaction solvents only (not workup/purification), comma-separated.\nOutcome status: 'success' if product obtained, 'failed' if yield 0% or 'no reaction' stated, 'trace' if only trace product, 'decomposition' if starting material decomposed. Null if unclear.\n\nYield \u2014 CRITICAL distinctions:\n- yield_percent MUST be a percentage (0-100), not a mass in grams or milligrams. If the text says \"gave 7.8 g of product\", do NOT put 7.8 as yield_percent \u2014 leave it null and put \"7.8 g isolated\" in setup_and_notes.\n- Conversion rate is NOT yield. If the text says \">95% conversion\", do NOT use 95 as yield_percent. Only use yield_percent for explicitly stated isolated/analytical yields.\n- \"Essentially pure\" or \"quantitative\" \u2192 use yield_type=\"quantitative\", yield_percent=null unless a specific number is given.\n\nRole assignments:\n- NaH, NaOH, K2CO3, Et3N, DMAP, pyridine (as base) \u2192 these are REAGENTS, not catalysts\n- Only use catalyst for species that are recovered/regenerated: Pd catalysts, Lewis acids, enzymes\n\nSTRICT FAITHFULNESS \u2014 CRITICAL:\nEvery factual field must come from the SPECIFIC paragraph you cite. Specifically:\n- reactants: Only name chemicals EXPLICITLY stated as starting materials. Do NOT infer from chemistry knowledge.\n- temperature: Only fill if EXPLICITLY stated for THIS reaction. Do NOT assume room temperature \u2014 leave null.\n- solvent, reagent, catalyst: Only chemicals EXPLICITLY named for THIS reaction. Do NOT borrow from a general procedure.\n- setup_and_notes: Only details EXPLICITLY stated. Do NOT add atmosphere (N2, argon) unless text says so.\nPrefer incomplete-but-faithful over complete-but-hallucinated.",
+  "schema_spec": [
+    {
+      "name": "reaction_type",
+      "value_type": "string",
+      "description": "Type of reaction (e.g., Suzuki coupling, hydrogenation, oxidation, reduction, alkylation, acylation, condensation, cycloaddition)",
+      "allowed_values": []
+    },
+    {
+      "name": "reactants",
+      "value_type": "string",
+      "description": "All reactants/substrates whose atoms end up in the product, comma-separated. Do NOT include reagents, bases, catalysts, or solvents.",
+      "allowed_values": []
+    },
+    {
+      "name": "product",
+      "value_type": "string",
+      "description": "Primary product, name as written in the paper.",
+      "allowed_values": []
+    },
+    {
+      "name": "reagent",
+      "value_type": "string",
+      "description": "Bases, stoichiometric reagents, ligands, and additives — comma-separated (e.g., 'K2CO3, XPhos, TBAI'). Not catalysts or solvents. Null if none.",
+      "allowed_values": []
+    },
+    {
+      "name": "catalyst",
+      "value_type": "string",
+      "description": "Catalyst or catalytic system (e.g., 'Pd(PPh3)4', '10% Pd/C', 'Grubbs II', 'CuI', 'PPTS', 'TiCl4'). Include Lewis acids, phase-transfer catalysts, and organocatalysts. Only exclude stoichiometric reagents like NaBH4 or bases like K2CO3 (those go in reagent). Null if no catalyst.",
+      "allowed_values": []
+    },
+    {
+      "name": "solvent",
+      "value_type": "string",
+      "description": "Reaction solvent(s), comma-separated. Not workup solvents. Null if not reported.",
+      "allowed_values": []
+    },
+    {
+      "name": "yield_percent",
+      "value_type": "number",
+      "description": "Yield in percent (0 for failed reactions). Null only if not reported at all.",
+      "allowed_values": []
+    },
+    {
+      "name": "yield_type",
+      "value_type": "string",
+      "description": "How yield was measured.",
+      "allowed_values": [
+        "isolated",
+        "GC",
+        "NMR",
+        "LCMS",
+        "HPLC",
+        "crude",
+        "quantitative",
+        "unspecified"
+      ]
+    },
+    {
+      "name": "outcome_status",
+      "value_type": "string",
+      "description": "Reaction outcome.",
+      "allowed_values": [
+        "success",
+        "failed",
+        "trace",
+        "no_reaction",
+        "decomposition"
+      ]
+    },
+    {
+      "name": "temperature",
+      "value_type": "string",
+      "description": "Reaction temperature with units (e.g., '80 °C', 'reflux', 'rt', '-78 °C'). If multiple stages, list the main reaction temperature. Null if not reported.",
+      "allowed_values": []
+    },
+    {
+      "name": "reaction_time",
+      "value_type": "string",
+      "description": "Reaction duration (e.g., '2 h', '30 min', 'overnight'). Null if not reported.",
+      "allowed_values": []
+    },
+    {
+      "name": "setup_and_notes",
+      "value_type": "string",
+      "description": "Atmosphere (N2, Ar, air), pressure, scale, concentration, equivalents, vessel, and any other relevant conditions not captured above. Null if nothing to add.",
+      "allowed_values": []
+    }
+  ]
+}

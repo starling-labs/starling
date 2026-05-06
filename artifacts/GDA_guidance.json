@@ -1,0 +1,75 @@
+{
+  "task": "Find all known gene-disease associations within PubMed.",
+  "task_instantiation": "Extract gene–disease association claims from PubMed paper text.\n\nDefinition (in scope): A gene (use the provided gene global_identifier) is explicitly stated to be associated with a human disease/phenotype/clinical trait, including:\n- genetic association results (GWAS, candidate gene, case-control, meta-analysis) involving a named variant (rsID, SNP, allele, genotype, haplotype, polymorphism, mutation)\n- statements that mutations/variants in a gene cause a hereditary disease (causal claims)\n- disease-related differential gene expression findings (e.g., “reduced MDR1 mRNA in ulcerative colitis patients”) when the disease and gene are explicitly linked.\n\nOut of scope (skip):\n- purely mechanistic/biochemical function with no disease/phenotype link\n- drug–gene interactions, pathway membership, or biomarker discussions that do not claim an association with disease risk/status\n- associations stated only for a genomic locus/region without mapping to a specific gene (unless the passage explicitly assigns the signal to a named gene).\n\nWhat counts as one record (granularity):\n- Create ONE record per (gene × disease × variant/mutation/expression feature × genetic_model) when the passage provides model-specific statistics (e.g., dominant vs recessive ORs). Set `genetic_model` to the model name as written.\n- If the passage reports the same gene–disease–variant association but lists multiple models/statistics without clearly separable single values, create ONE record with `genetic_model` null and put the full list of model-specific stats in `extra_details`.\n- If no variant is mentioned (gene-level association, gene-based test, or causal gene statement), set `variant` to null.\n\nEvidence threshold:\n- Only extract associations explicitly stated in text (including stated values for OR/RR/HR/beta/p-value/CI). Do not infer direction or significance from context alone.\n- Capture both positive and null findings (e.g., “not associated”, “P>0.05”).\n\nField instructions:\n- `disease_name`: copy the disease/phenotype name as written.\n- `association_label`: choose the closest label based on the author’s wording (risk-increasing/protective/associated/not associated/candidate/causal mutation/differential expression). If the text says “significant association” but no direction, use “associated”.\n- `effect_measure` and `effect_value`: use when a single numeric effect is given (e.g., OR 1.15). If multiple effect values are given in the same record, leave `effect_value` null and put details in `extra_details`.\n- `population`: capture ancestry/country/cohort descriptor if stated (e.g., “Finnish”, “Southeast Asian”, “north India”, “smokers”). Leave null if not stated.\n- Put confidence intervals, multiple per-model values, Z-scores, tissue/cell type context for expression, and other nuances in `extra_details` when not captured elsewhere.",
+  "schema_spec": [
+    {
+      "name": "disease_name",
+      "description": "Disease/phenotype/clinical trait associated with the gene, as stated in the passage.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "variant",
+      "description": "Specific variant/polymorphism/mutation/allele/genotype/haplotype implicated (e.g., rsID, amino-acid change, 'T allele', 'del/del genotype'). Null if the claim is gene-level with no variant named.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "genetic_model",
+      "description": "Genetic association model if specified (e.g., allelic, dominant, recessive, codominant, overdominant, homozygous, genotypic). Null if not specified or not applicable.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "association_label",
+      "description": "Direction/type of gene–disease relationship explicitly stated.",
+      "value_type": "string",
+      "allowed_values": [
+        "increased_risk",
+        "decreased_risk",
+        "associated",
+        "not_associated",
+        "candidate_or_susceptibility_gene",
+        "causal_mutation",
+        "differential_expression"
+      ]
+    },
+    {
+      "name": "effect_measure",
+      "description": "Type of quantitative effect measure reported for the association; use 'p_value_only' when only significance is given without an effect size.",
+      "value_type": "string",
+      "allowed_values": [
+        "odds_ratio",
+        "risk_ratio",
+        "hazard_ratio",
+        "beta",
+        "p_value_only",
+        "other"
+      ]
+    },
+    {
+      "name": "effect_value",
+      "description": "Single numeric value for the effect measure (e.g., OR=1.15). Null if not reported or if multiple values are reported in the same record.",
+      "value_type": "number",
+      "allowed_values": []
+    },
+    {
+      "name": "p_value",
+      "description": "P-value as stated (can include inequalities like '<0.01' or scientific notation). Null if not provided.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "population",
+      "description": "Population/ancestry/cohort descriptor tied to the association (e.g., 'European', 'Finnish', 'north India', 'smokers'). Null if not stated.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "extra_details",
+      "description": "Free-form string for additional details that do not fit other top-level fields.",
+      "value_type": "string",
+      "allowed_values": []
+    }
+  ]
+}

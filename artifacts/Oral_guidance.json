@@ -1,0 +1,67 @@
+{
+  "task": "Find all molecules mentioned in PubMed for which oral bioavailability status has been reported.",
+  "task_instantiation": "Extract reports of **oral bioavailability** for molecules/compounds (and, if present, compound classes) in the provided PubMed paper text.\n\nCreate one record **each time a passage reports an oral bioavailability result for a specific molecule under a distinct context**. A distinct context is a change in any of: species/population (e.g., rat vs human; healthy volunteers vs patients), disease state (e.g., cirrhosis), metabolizer phenotype/genotype (e.g., poor vs extensive metabolizers), dose level, formulation/dosage form/salt/prodrug, or oral exposure mode (e.g., tablet vs capsule; solution; dietary exposure vs gavage). If the passage gives multiple doses/contexts for the same molecule, emit separate records.\n\nIn-scope evidence (must be explicit):\n- Explicit oral bioavailability/systemic availability/absolute bioavailability/\"F\" after oral (PO) administration, including numeric values (%, fraction), ranges, mean±SD/CI, or qualitative descriptors (e.g., \"low\", \"unpredictable\", \"almost complete\").\n- Statements where oral bioavailability is **calculated/derived** by comparing oral vs IV dosing (still in-scope; capture as oral bioavailability).\n- Comparative oral-bioavailability claims (e.g., \"3-fold higher with dietary route vs gavage\", \"lower than parenteral\", \"similar to rectal\") **only if explicitly framed as bioavailability/systemic availability**.\n\nOut of scope (do NOT extract):\n- Permeability/BCS class, absorption-only statements that do not explicitly state/label bioavailability (unless the authors explicitly equate them, e.g., \"bioavailability indicates complete absorption\").\n- Bioavailability for non-oral routes (IV, rectal, buccal, intranasal, etc.) except when used as a comparator to compute/describe oral bioavailability.\n- Purely methodological formulas without a reported oral bioavailability outcome/value (unless the passage also provides the value elsewhere in the same passage).\n\nField filling rules:\n- Use `molecule_name` as written.\n- Put the reported oral bioavailability result in `oral_bioavailability_value` exactly as stated (keep %, ranges, ±, CI). If only qualitative/comparative information is given, store that phrase as the value.\n- Set `bioavailability_report_type` based on wording (absolute vs systemic availability vs extent F, etc.). If unclear, use `unspecified`.\n- Put species or human subject description in `species_or_population` (e.g., \"pigs\", \"healthy postmenopausal women\", \"patients with cirrhosis\").\n- Put the oral dose (and units) in `dose` if stated.\n- Put truly qualifying/non-standard conditions in `qualifying_conditions` (e.g., cirrhosis, poor metabolizers, sustained-release form, salt form), otherwise null.\n- Use `extra_details` for comparators (IV/rectal/parenteral), calculation notes (AUC ratio), sample size, min/max, and any nuance not captured elsewhere.",
+  "schema_spec": [
+    {
+      "name": "molecule_name",
+      "description": "Name of the molecule/compound (or compound class) for which oral bioavailability is reported in the passage.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "oral_bioavailability_value",
+      "description": "The reported oral bioavailability/systemic availability result for this molecule under oral administration, as stated (e.g., \"41%\", \"10–22%\", \"0.61 ± 0.16\", \"low\", \"unpredictable\", \"3-fold higher vs gavage\"). Null if the passage does not actually report an oral bioavailability outcome.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "bioavailability_report_type",
+      "description": "How the paper describes the oral bioavailability measure.",
+      "value_type": "string",
+      "allowed_values": [
+        "absolute",
+        "apparent",
+        "systemic_availability",
+        "extent_f",
+        "relative_comparison",
+        "unspecified"
+      ]
+    },
+    {
+      "name": "species_or_population",
+      "description": "Species and/or human population for the oral bioavailability result (e.g., \"rat\", \"pigs\", \"healthy postmenopausal women\", \"patients\").",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "dose",
+      "description": "Oral dose and units associated with the reported bioavailability (e.g., \"50 mg\", \"100 µg/kg\", \"400 mg/m²\").",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "oral_exposure_mode",
+      "description": "How the oral dose was given if specified (e.g., \"tablet\", \"capsule\", \"nasogastric gavage\", \"dietary pellets\", \"sustained release\").",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "qualifying_conditions",
+      "description": "Non-default or special conditions that materially qualify the oral bioavailability claim (e.g., \"cirrhosis\", \"poor metabolizers\", \"administered as lysine salt\", \"first-pass metabolism noted\"). Null if standard/unspecified.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "comparator",
+      "description": "Comparator route/dosing used to compute or contextualize oral bioavailability if explicitly stated (e.g., \"vs IV\", \"vs parenteral\", \"vs rectal\", \"dietary vs gavage\").",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "extra_details",
+      "description": "Free-form string for additional details that do not fit other top-level fields.",
+      "value_type": "string",
+      "allowed_values": []
+    }
+  ]
+}

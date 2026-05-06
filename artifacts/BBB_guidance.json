@@ -1,0 +1,76 @@
+{
+  "task": "Find all molecules mentioned in PubMed for which blood-brain barrier permeability status has been reported. Include both qualitative (e.g., permeable, impermeable, low, high, etc.) as well as quantitative data. For qualitative, use a closed set of labels.",
+  "task_instantiation": "Extract evidence from PubMed paper text stating that a specific small molecule (or explicitly named compound class such as “acid dyes”, “amino acids”, “ions”) has reported blood–brain barrier (BBB) permeability/penetration or BBB transport behavior.\n\nWhen to create a record (granularity):\n- Create ONE record per molecule (global_identifier) per distinct BBB permeability/penetration result in the passage.\n- If the same molecule has both (a) a qualitative BBB permeability statement and (b) one quantitative permeability/brain exposure metric in the same passage and they refer to the same experimental/model context, include both in the SAME record.\n- If the same molecule has multiple different quantitative metrics (e.g., Kp,brain and PS; or Papp and Kp,uu) or clearly different experimental conditions/models (e.g., different assay types, species, or BBB models), emit separate records for each metric/condition, with `qualifying_conditions` describing the differentiating condition.\n\nIn-scope evidence (must be explicitly stated; do not guess):\n- Qualitative BBB statements: “BBB permeable”, “crosses the BBB”, “good/poor BBB penetration”, “low/high brain permeability”, “movement is restricted”, “increased permeability”, etc.\n- Quantitative BBB/brain exposure proxies explicitly tied to BBB penetration/permeability, including but not limited to: Kp,brain; Kp,uu; brain/plasma (or brain ECF/plasma) AUC ratios; AUCu,b/AUCu,p; PS (permeability-surface area product); K1 influx rate constant; Papp/Ppass in BBB models (e.g., BBB-PAMPA, MDCK-MDR1, NVU/co-culture BBB models).\n- Transport mechanism statements explicitly at the BBB (efflux/influx substrate, efflux-limited, transporter-mediated transport, passive diffusion across BBB). These should be captured in `bbb_transport_label` (and details in `extra_details`) and are considered “BBB permeability status reported”.\n\nOut of scope / skip:\n- General lipophilicity/LogP or “passive permeability” statements that are NOT explicitly connected to BBB permeability/brain penetration.\n- CNS pharmacodynamics or efficacy claims without BBB penetration evidence.\n- Comparative-only statements (e.g., “2-fold lower than”) without any explicit interpretation as high/low/good/poor BBB penetration AND without an explicit permeability/brain distribution metric value. If a comparative is stated for a specific BBB metric (e.g., “Kp,brain is ≥2-fold lower in human”), it is in-scope as quantitative; record the comparison in `quant_value` as written and do NOT infer a qualitative label.\n\nDefault context and qualifiers:\n- Assume an intact, normal BBB under standard conditions unless the passage indicates a special context that would change interpretation (e.g., BBB disruption/breakdown, pathological state, special brain region lacking typical BBB such as area postrema, co-administered permeabilizer/inhibitor, intrathecal/intraventricular delivery bypassing BBB, engineered cell lines overexpressing transporters). Put such context in `qualifying_conditions`. Routine parameters like species and assay/model belong in their dedicated fields.\n\nHow to fill fields:\n- `bbb_permeability_label`: choose ONLY if the passage explicitly uses that qualitative meaning; do not derive from numbers. Map synonyms: “rapidly penetrated/crosses” → permeable; “good BBB penetration/brain penetration” → good_penetration; “poor BBB penetration/poor uptake across BBB” → poor_penetration; “high penetrability/high permeability” → high_permeability; “low brain permeability” → low_permeability; “restricted movement” → restricted; “increased permeability” → increased_permeability.\n- `quant_metric`: name of the quantitative measure exactly (e.g., “PS”, “Kp,brain”, “Kp,uu”, “AUCu brain ECF / AUCu plasma”, “Papp”, “Ppass”, “K1”).\n- `quant_value`: record the value string exactly as presented (retain ±, ranges, scientific notation, %, fold-change language).\n- `quant_units`: units if stated.\n- `assay_model`: experimental system/model used (e.g., BBB-PAMPA, PBPK modeling, microdialysis, NVU model, MDR1-MDCKII).\n- `species`: species if stated (human, rat, mouse, etc.).\n- `bbb_transport_label`: only when BBB transport mechanism is explicitly stated (efflux/influx substrate, transporter-mediated, passive diffusion, efflux-limited, not subject to efflux). Put transporter names and nuance in `extra_details`.\n\nSet fields to null if not stated.",
+  "schema_spec": [
+    {
+      "name": "bbb_permeability_label",
+      "description": "Qualitative BBB permeability/penetration status explicitly stated for the molecule in the passage. Do not infer from numeric metrics. Use the closest label per mapping guidance in the task instructions; leave null if only quantitative data or only transport interaction is given.",
+      "value_type": "string",
+      "allowed_values": [
+        "permeable",
+        "impermeable",
+        "high_permeability",
+        "low_permeability",
+        "good_penetration",
+        "poor_penetration",
+        "restricted",
+        "increased_permeability"
+      ]
+    },
+    {
+      "name": "bbb_transport_label",
+      "description": "Explicit statement about how the molecule is transported at the BBB (efflux/influx substrate or mechanism). Only fill when the passage explicitly states this; otherwise null.",
+      "value_type": "string",
+      "allowed_values": [
+        "efflux_substrate",
+        "influx_substrate",
+        "efflux_limited",
+        "not_subject_to_efflux",
+        "transporter_mediated",
+        "passive_diffusion"
+      ]
+    },
+    {
+      "name": "quant_metric",
+      "description": "Name of any quantitative BBB permeability/brain exposure metric reported (e.g., PS, Kp,brain, Kp,uu, K1, Papp/Ppass, AUCu,b/AUCu,p, brain ECF/plasma AUC ratio). Null if none.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "quant_value",
+      "description": "Quantitative value for `quant_metric` exactly as stated (may include ±, range, %, scientific notation, or fold-change comparisons). Null if none.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "quant_units",
+      "description": "Units for `quant_value` if stated (e.g., ml/min/g, cm/s, µl/(g·min), %). Null if not given.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "assay_model",
+      "description": "Assay/model/system used to determine or predict BBB permeability (e.g., BBB-PAMPA, PBPK modeling, microdialysis, NVU model, MDR1-MDCKII). Null if not stated.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "species",
+      "description": "Species the data refer to (e.g., human, rat, mouse). Null if not stated.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "qualifying_conditions",
+      "description": "Non-standard or interpretation-altering conditions (e.g., BBB disruption/breakdown, disease model, special brain region like area postrema, co-administered transporter inhibitor/permeabilizer, bypass routes like intrathecal, engineered transporter-overexpressing cells). Null if none/unspecified.",
+      "value_type": "string",
+      "allowed_values": []
+    },
+    {
+      "name": "extra_details",
+      "description": "Free-form string for additional details that do not fit other top-level fields.",
+      "value_type": "string",
+      "allowed_values": []
+    }
+  ]
+}

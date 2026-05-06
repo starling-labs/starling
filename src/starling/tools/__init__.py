@@ -1,0 +1,1 @@
+from starling.tools.normalize import normalize_entities_tool as normalize_entities_tool
