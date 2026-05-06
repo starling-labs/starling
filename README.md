@@ -16,11 +16,10 @@ Released datasets and the entity tagger are available on HuggingFace: [starling-
 - Oral bioavailability
 - Entity tagger
 
-> **Note:** Automated database construction from an arbitrary corpus is **work-in-progress** — the end-to-end pipeline (entity tagging, normalization, ClickHouse bitmap builds, Milvus indexing) is non-trivial to package, and we're still working on a turnkey path. For now, the search backend assumes a pre-built Milhouse instance.
+> **Coming soon — hosted API:** We are preparing a public Starling endpoint so you can run the agents against our corpus without standing up your own backend. Watch this repo for the client release. We are also working on a turnkey solution to build a database like ours from your own documents.
 
-> **Note on the search backend:** The concrete ClickHouse + Milvus implementation that powered our internal corpus has been **stripped out of this code release**. The agents are written against two ABCs — `VectorSearchBase` (`src/starling/infra/vector_search_base.py`) and `EntityNormalizer` (`src/starling/infra/normalizer_base.py`) — and the modules that previously held the production implementations (`milhouse_vector_search.py`, `ch_normalizer.py`, `ch_client.py`) are now stubs that raise `NotImplementedError`. **The code will not run end-to-end as released.** Bring your own backend by subclassing those two ABCs to point Starling at your own corpus.
+> **Note on the search backend:** The concrete ClickHouse + Milvus implementation that powered our internal corpus has been **stripped out of this code release** for literature licensing and security reasons while we work on our API. The production modules (`milhouse_vector_search.py`, `ch_normalizer.py`, `ch_client.py`) ship as stubs that raise `NotImplementedError`. The agents are written against two ABCs — `VectorSearchBase` (`src/starling/infra/vector_search_base.py`) and `EntityNormalizer` (`src/starling/infra/normalizer_base.py`); subclass both to point Starling at your own corpus.
 
-> **Coming soon — hosted API & turnkey setup:** A public Starling endpoint is **work-in-progress**. We **will** be updating this repository with (a) a client for the hosted API so you can run the agents against our corpus without standing up your own backend, and (b) a turnkey path for building the search indexes from a corpus of your own. Watch this repo for updates.
 
 ## Installation
 
